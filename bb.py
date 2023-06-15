@@ -28,7 +28,17 @@ ball_radius = 3
 gui = ti.GUI('Bouncing Ball', (360, 360))
 
 margin = 0.01
-goal = [0.8, 0.3]
+goal = [0.8, 0.2]
+
+lines = [
+    [(0.01, 0.01), (0.99, 0.01), True], 
+    [(0.01, 0.99), (0.99, 0.99), True], 
+    [[0.1, 0.2], [0.3, 0.2], True], 
+    [[0.6, 0.5], [0.8, 0.5], True], 
+    [[0.3, 0.8], [0.5, 0.8], True], 
+    [[0.01, 0.01], [0.01, 0.99], False], 
+    [[0.99, 0.01], [0.99, 0.99], False], 
+    ]
 
 
 @ti.kernel
@@ -82,10 +92,11 @@ def forward():
         
         gui.clear()
         gui.circle((x[t][0], x[t][1]), 0xCCCCCC, ball_radius)
-        gui.circle((goal[0], goal[1]), 0xFFCCCC, ball_radius)
-        gui.line([0.1, 0.8], [0.3, 0.8], radius=1, color=0xD9D2E9)
-        gui.line([0.1, 0.5], [0.3, 0.5], radius=1, color=0xD9D2E9)
-        gui.line([0.1, 0.2], [0.3, 0.2], radius=1, color=0xD9D2E9)
+        gui.circle((goal[0], goal[1]), 0xFFCCCC, ball_radius * 1.4)
+        
+        for line in lines:
+            gui.line(line[0], line[1], radius=1, color=0xD9D2E9)
+
         gui.show()
 
     compute_loss(steps - 1)
