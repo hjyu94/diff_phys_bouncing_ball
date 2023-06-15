@@ -1,4 +1,5 @@
 import taichi as ti
+import matplotlib.pyplot as plt
 
 real = ti.f32
 ti.init(default_fp=real, flatten_if=True, debug=True)
@@ -8,6 +9,7 @@ steps = 512
 dt = 0.02
 lr = 0.25
 elasticity = 0.8
+epoch = 1
 
 gravity = ti.Vector([0, -0.98])
 
@@ -23,12 +25,13 @@ init_v = ti.Vector.field(2, dtype=real, shape=(), needs_grad = True)
 loss = ti.field(dtype=real, shape=(), needs_grad = True)
 impulse = ti.Vector.field(2, dtype=real, shape=max_steps, needs_grad = True)
 
+margin = 0.01
+goal = [0.8, 0.2]
 ball_radius = 3
+
 
 gui = ti.GUI('Bouncing Ball', (360, 360))
 
-margin = 0.01
-goal = [0.8, 0.2]
 
 lines = [
     [(0.01, 0.01), (0.99, 0.01)], 
@@ -125,18 +128,32 @@ def randomize():
 
 def optimize():
     randomize()
-            
-    for iter in range(200):
+    
+    iters = []
+    losses = []
+    for iter in range(epoch):
         clear()
+        print('init_x:',init_x)
+        print('init_v:',init_v)
 
         with ti.ad.Tape(loss):
             forward()
 
         print('Iter=', iter, 'Loss=', loss[None])
+        
         for d in range(2):
             init_x[None][d] -= lr * init_x.grad[None][d]
             init_v[None][d] -= lr * init_v.grad[None][d]
-
+        
+        for d in range(2):
+            init_x[None][d] = min(init_x[None][d], 0.8)
+            init_x[None][d] = max(init_x[None][d], 0.2)
+            
+        losses.append(loss[None])
+            
+    plt.plot(losses)
+    plt.show()
+        
     clear()
     forward()
 
