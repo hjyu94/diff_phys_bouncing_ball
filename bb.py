@@ -3,8 +3,8 @@ import taichi as ti
 real = ti.f32
 ti.init(default_fp=real, flatten_if=True, debug=True)
 
-max_steps = 512
-steps = 128
+max_steps = 1024
+steps = 512
 dt = 0.02
 lr = 0.25
 elasticity = 0.8
@@ -31,14 +31,14 @@ margin = 0.01
 goal = [0.8, 0.2]
 
 lines = [
-    [(0.01, 0.01), (0.99, 0.01), True], 
-    [(0.01, 0.99), (0.99, 0.99), True], 
-    [[0.1, 0.2], [0.3, 0.2], True], 
-    [[0.6, 0.5], [0.8, 0.5], True], 
-    [[0.3, 0.8], [0.5, 0.8], True], 
-    [[0.01, 0.01], [0.01, 0.99], False], 
-    [[0.99, 0.01], [0.99, 0.99], False], 
-    ]
+    [(0.01, 0.01), (0.99, 0.01)], 
+    [(0.01, 0.99), (0.99, 0.99)], 
+    [[0.1, 0.2], [0.3, 0.2]], 
+    [[0.6, 0.5], [0.8, 0.5]], 
+    [[0.3, 0.8], [0.5, 0.8]], 
+    [[0.01, 0.01], [0.01, 0.99]], 
+    [[0.99, 0.01], [0.99, 0.99]], 
+]
 
 
 @ti.kernel
@@ -63,20 +63,35 @@ def advance(t: ti.i32):
     v[t] = v[t - 1] + impulse[t]
     x[t] = x[t - 1] + dt * v[t]
 
-
-@ti.kernel
-def has_collision(t: ti.i32):
-    return x[t][0] < margin or x[t][0] > 1 - margin or x[t][1] < margin or x[t][1] > 1 - margin
-
+epsilon = 0.03
 
 @ti.kernel
 def collide(t: ti.i32):
-    # if has_collision(t):
     imp = ti.Vector([0.0, 0.0])
     
+    # horizontal
     if (x[t][1] < margin and v[t][1] < 0) or (x[t][1] > 1 - margin and v[t][1] > 0):
         imp = ti.Vector([0, -(1+elasticity) * v[t][1]])
         
+    elif (x[t][0] > 0.1 and x[t][0] < 0.3) and (
+        (0.2 < x[t][1] < 0.2 + epsilon and v[t][1] < 0) 
+        or (0.2 - epsilon < x[t][1] < 0.2 and v[t][1] > 0)
+        ):
+        imp = ti.Vector([0, -(1+elasticity) * v[t][1]])
+        
+    elif (x[t][0] > 0.6 and x[t][0] < 0.8) and (
+        (0.5 < x[t][1] < 0.5 + epsilon and v[t][1] < 0) 
+        or (0.5 - epsilon < x[t][1] < 0.5 and v[t][1] > 0)
+        ):
+        imp = ti.Vector([0, -(1+elasticity) * v[t][1]])
+        
+    elif (x[t][0] > 0.3 and x[t][0] < 0.5) and (
+        (0.8 < x[t][1] < 0.8 + epsilon and v[t][1] < 0) 
+        or (0.8 - epsilon < x[t][1] < 0.8 and v[t][1] > 0)
+        ):
+        imp = ti.Vector([0, -(1+elasticity) * v[t][1]])
+        
+    # vertical
     elif (x[t][0] < margin and v[t][0] < 0) or (x[t][0] > 1 - margin and v[t][0] > 0):
         imp = ti.Vector([-(1+elasticity) * v[t][0], 0])
     
@@ -104,7 +119,7 @@ def forward():
 
 @ti.kernel
 def randomize():
-    init_x[None] = [0.1, 0.5]
+    init_x[None] = [0.4, 0.5]
     init_v[None] = [ti.random(), ti.random()]
 
 
